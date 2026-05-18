@@ -18,20 +18,25 @@ const ensurePayloadEnvLoaded = async (): Promise<void> => {
 
   try {
     const path = await import('node:path')
+    const { existsSync } = await import('node:fs')
     const { fileURLToPath } = await import('node:url')
     const { loadEnv } = await import('payload/node')
 
     const currentFile = fileURLToPath(import.meta.url)
     const currentDir = path.dirname(currentFile)
+    const payloadEnvPath = path.resolve(currentDir, '../../../../../payload/.env')
+    const webuiEnvPath = path.resolve(currentDir, '../../../../.env')
 
     // Load from both packages so local API can run regardless of command cwd.
-    loadEnv(path.resolve(currentDir, '../../../../../payload/.env'))
-    loadEnv(path.resolve(currentDir, '../../../../.env'))
-    loadEnv()
-
-    if (!process.env.PAYLOAD_SECRET && import.meta.env.PAYLOAD_SECRET) {
-      process.env.PAYLOAD_SECRET = import.meta.env.PAYLOAD_SECRET
+    if (existsSync(payloadEnvPath)) {
+      loadEnv(payloadEnvPath)
     }
+
+    if (existsSync(webuiEnvPath)) {
+      loadEnv(webuiEnvPath)
+    }
+
+    loadEnv()
   } catch (error) {
     console.warn(`[webui] Could not preload Payload environment variables. ${getErrorMessage(error)}`)
   }
@@ -41,8 +46,11 @@ export const getLocalPayloadClient = async (
   context: PayloadRequestContext = {},
 ): Promise<Payload | null> => {
   if (!shouldUseLocalClient(context)) {
+    console.log('using REST api');
     return null
   }
+
+  console.log('using LOCAL api');
 
   if (!localPayloadPromise) {
     localPayloadPromise = (async () => {
