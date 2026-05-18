@@ -1,6 +1,13 @@
 {
   "name": "astro-payload-monorepo",
   "version": "1.0.0",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "sharp",
+      "esbuild",
+      "unrs-resolver"
+    ]
+  },
   "scripts": {
     "dev": "pnpm -r --parallel --filter payload --filter webui dev",
     "dev:payload": "cd payload && pnpm dev:webpack",
