@@ -1,46 +1,63 @@
-# Astro Starter Kit: Basics
+# Astro Frontend for Payload
+
+This package is the Astro frontend in the monorepo and is wired to the existing Payload app in `../payload`.
+
+## How data is fetched
+
+`src/lib/payload/client.ts` uses a local-first strategy:
+
+1. It tries Payload Local API (`getPayload`) for best server-side performance.
+2. If local initialization fails, it automatically falls back to Payload REST (`PAYLOAD_PUBLIC_URL`).
+
+The current source mode is visible on the Astro homepage.
+
+## Shared Payload typings
+
+Types are imported directly from Payload-generated types:
+
+- `@payload-types` -> `../payload/src/payload-types.ts`
+
+When your schema changes, regenerate types from the monorepo root:
 
 ```sh
-pnpm create astro@latest -- --template basics
+pnpm run generate:types
 ```
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+## Environment
 
-## 🚀 Project Structure
+Optional env vars for this frontend:
 
-Inside of your Astro project, you'll see the following folders and files:
+- `PAYLOAD_LOCAL_API=true` (default: true)
+- `PAYLOAD_PUBLIC_URL=http://localhost:3000` (used for REST fallback)
+- `PAYLOAD_SECRET=...` (required for Payload local API; can live in `webui/.env` or `payload/.env`)
 
-```text
-/
-├── public/
-│   └── favicon.svg
-├── src
-│   ├── assets
-│   │   └── astro.svg
-│   ├── components
-│   │   └── Welcome.astro
-│   ├── layouts
-│   │   └── Layout.astro
-│   └── pages
-│       └── index.astro
-└── package.json
+For Payload CMS live preview to point to Astro, set these vars in the Payload app (`payload/.env`):
+
+- `ASTRO_PUBLIC_SERVER_URL=http://localhost:4321`
+- `PAYLOAD_PREVIEW_TARGET=astro` (default behavior in current code)
+
+You can temporarily switch back to Next.js preview links with:
+
+- `PAYLOAD_PREVIEW_TARGET=next`
+
+Astro also loads both `../payload/.env` and `webui/.env` so local API mode can reuse existing Payload settings.
+
+## Live preview and admin bar
+
+- Payload draft/live preview loads Astro routes with `?preview=true`.
+- In preview mode, Astro subscribes to Payload document events and refreshes automatically on autosave.
+- When logged in to Payload admin, Astro renders a top admin bar with dashboard and edit links.
+
+## Run locally
+
+From monorepo root:
+
+```sh
+pnpm run dev
 ```
 
-To learn more about the folder structure of an Astro project, refer to [our guide on project structure](https://docs.astro.build/en/basics/project-structure/).
+Or run only Astro:
 
-## 🧞 Commands
-
-All commands are run from the root of the project, from a terminal:
-
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `pnpm install`             | Installs dependencies                            |
-| `pnpm dev`             | Starts local dev server at `localhost:4321`      |
-| `pnpm build`           | Build your production site to `./dist/`          |
-| `pnpm preview`         | Preview your build locally, before deploying     |
-| `pnpm astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `pnpm astro -- --help` | Get help using the Astro CLI                     |
-
-## 👀 Want to learn more?
-
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+```sh
+pnpm --filter webui dev
+```

@@ -1,3 +1,31 @@
+---
+import type { User } from '@payload-types'
+
+const {
+  title,
+  description,
+  adminUser,
+  adminEditURL,
+  preview = false,
+  payloadServerURL = 'http://localhost:3000',
+} = Astro.props as {
+  title?: string
+  description?: string
+  adminUser?: User | null
+  adminEditURL?: string | null
+  preview?: boolean
+  payloadServerURL?: string
+}
+
+const exitPreviewURL = new URL(Astro.url.pathname, Astro.url)
+
+for (const [key, value] of Astro.url.searchParams.entries()) {
+  if (key !== 'preview') {
+    exitPreviewURL.searchParams.set(key, value)
+  }
+}
+---
+
 <!doctype html>
 <html lang="en">
 	<head>
@@ -6,10 +34,61 @@
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<link rel="icon" href="/favicon.ico" />
 		<meta name="generator" content={Astro.generator} />
-		<title>Astro Basics</title>
+		<title>{title ?? 'Astro + Payload'}</title>
+		<meta
+			name="description"
+			content={description ?? 'Astro frontend connected to a local Payload CMS backend.'}
+		/>
 	</head>
 	<body>
-		<slot />
+		{adminUser?.id && (
+			<header class="payload-admin-bar">
+				<nav class="payload-admin-bar__links">
+					<a href={`${payloadServerURL}/admin`} rel="noreferrer" target="_blank">Dashboard</a>
+					{adminEditURL && (
+						<a href={adminEditURL} rel="noreferrer" target="_blank">
+							Edit Current Document
+						</a>
+					)}
+					{preview && <a href={`${exitPreviewURL.pathname}${exitPreviewURL.search}`}>Exit Preview</a>}
+				</nav>
+				<p class="payload-admin-bar__user">
+					{adminUser.name || adminUser.email || 'Authenticated Payload user'}
+				</p>
+			</header>
+		)}
+
+		{preview && (
+			<script define:vars={{ payloadServerURL }} is:inline>
+				const serverURL = payloadServerURL;
+
+				const postReady = () => {
+					const targetWindow = window.opener || window.parent;
+
+					if (targetWindow && targetWindow !== window) {
+						targetWindow.postMessage({ type: 'payload-live-preview', ready: true }, serverURL);
+					}
+				};
+
+				const onMessage = (event) => {
+					if (
+						event.origin === serverURL &&
+						event.data &&
+						typeof event.data === 'object' &&
+						event.data.type === 'payload-document-event'
+					) {
+						window.location.reload();
+					}
+				};
+
+				window.addEventListener('message', onMessage);
+				postReady();
+			</script>
+		)}
+
+		<main>
+			<slot />
+		</main>
 	</body>
 </html>
 
@@ -18,6 +97,51 @@
 	body {
 		margin: 0;
 		width: 100%;
-		height: 100%;
+		min-height: 100%;
+		font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+		background: radial-gradient(circle at top right, #eef6ff 0%, #f9fbff 40%, #ffffff 100%);
+		color: #12223a;
+	}
+
+	.payload-admin-bar {
+		position: sticky;
+		top: 0;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 1rem;
+		padding: 0.75rem 1.25rem;
+		background: #0e2038;
+		color: #ecf4ff;
+		z-index: 100;
+	}
+
+	.payload-admin-bar__links {
+		display: flex;
+		gap: 0.75rem;
+		flex-wrap: wrap;
+	}
+
+	.payload-admin-bar a {
+		font-size: 0.9rem;
+		font-weight: 600;
+		color: #8fc0ff;
+		text-decoration: none;
+	}
+
+	.payload-admin-bar a:hover {
+		text-decoration: underline;
+	}
+
+	.payload-admin-bar__user {
+		margin: 0;
+		font-size: 0.85rem;
+		opacity: 0.92;
+	}
+
+	main {
+		max-width: 72rem;
+		margin: 0 auto;
+		padding: 2rem 1.25rem 4rem;
 	}
 </style>

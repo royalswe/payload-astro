@@ -1,0 +1,91 @@
+---
+import Layout from '../layouts/Layout.astro'
+import { getCurrentUser, getPageByPath, getPayloadBaseURL } from '../lib/payload/client'
+
+export const prerender = false
+
+const slugPath = Astro.params.slug ?? ''
+const pagePath = `/${slugPath}`
+const isPreview = Astro.url.searchParams.get('preview') === 'true'
+const payloadServerURL = getPayloadBaseURL()
+
+const [page, currentUser] = await Promise.all([
+  getPageByPath(pagePath, 2, { draft: isPreview, request: Astro.request }),
+  getCurrentUser({ request: Astro.request }),
+])
+
+const adminEditURL = page ? `${payloadServerURL}/admin/collections/pages/${page.id}` : null
+
+if (!page) {
+  Astro.response.status = 404
+}
+---
+
+<Layout
+  title={page?.meta?.title ?? 'Page not found'}
+  adminUser={currentUser}
+  adminEditURL={adminEditURL}
+  preview={isPreview}
+  payloadServerURL={payloadServerURL}
+>
+  {
+    page ? (
+      <article>
+        <h1>{page.title}</h1>
+        <p class="meta">
+          <strong>Path:</strong> {pagePath}
+        </p>
+        <p class="meta">
+          <strong>Status:</strong> {page._status ?? 'published'}
+        </p>
+
+        <section>
+          <h2>Page data preview</h2>
+          <p>
+            This route is now loaded from Payload and typed with generated Payload interfaces. You can replace this
+            with Astro components block-by-block while keeping the same typed query layer.
+          </p>
+          <pre>{JSON.stringify({ hero: page.hero, layoutBlocks: page.layout.length }, null, 2)}</pre>
+        </section>
+      </article>
+    ) : (
+      <article>
+        <h1>404</h1>
+        <p>No Payload page found for <strong>{pagePath}</strong>.</p>
+      </article>
+    )
+  }
+</Layout>
+
+<style>
+  article {
+    padding: 1.25rem;
+    border-radius: 1rem;
+    border: 1px solid #dbe5f4;
+    background: #ffffffcc;
+    box-shadow: 0 10px 30px rgba(16, 36, 61, 0.06);
+  }
+
+  h1 {
+    margin-top: 0;
+    margin-bottom: 0.75rem;
+  }
+
+  h2 {
+    margin-top: 1.25rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .meta {
+    margin: 0.25rem 0;
+  }
+
+  pre {
+    margin: 0;
+    padding: 0.875rem;
+    border-radius: 0.75rem;
+    border: 1px solid #dbe5f4;
+    background: #f7fafe;
+    overflow-x: auto;
+  }
+</style>

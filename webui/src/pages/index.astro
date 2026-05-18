@@ -1,11 +1,166 @@
 ---
-import Welcome from '../components/Welcome.astro';
-import Layout from '../layouts/Layout.astro';
+import Layout from '../layouts/Layout.astro'
+import {
+	getCurrentUser,
+	getGlobal,
+	getPayloadBaseURL,
+	getPageByPath,
+	getPayloadDataSource,
+	getPublishedPages,
+	getPublishedPosts,
+} from '../lib/payload/client'
 
-// Welcome to Astro! Wondering what to do next? Check out the Astro documentation at https://docs.astro.build
-// Don't want to use any of this? Delete everything in this file, the `assets`, `components`, and `layouts` directories, and start fresh.
+export const prerender = false
+
+const isPreview = Astro.url.searchParams.get('preview') === 'true'
+const payloadServerURL = getPayloadBaseURL()
+
+const toPreviewHref = (href: string | null | undefined): string => {
+	const safeHref = href || '/'
+
+	if (!isPreview) {
+		return safeHref
+	}
+
+	const url = new URL(safeHref, 'http://localhost')
+	url.searchParams.set('preview', 'true')
+	return `${url.pathname}${url.search}`
+}
+
+const toPostHref = (slug: string): string => {
+	const url = new URL(`/posts/${encodeURIComponent(slug)}`, 'http://localhost')
+
+	if (isPreview) {
+		url.searchParams.set('preview', 'true')
+	}
+
+	return `${url.pathname}${url.search}`
+}
+
+const [homePage, header, footer, pages, posts, currentUser] = await Promise.all([
+	getPageByPath('/home', 2, { draft: isPreview, request: Astro.request }),
+	getGlobal('header', 1, { request: Astro.request }),
+	getGlobal('footer', 1, { request: Astro.request }),
+	getPublishedPages({ limit: 10, draft: isPreview, request: Astro.request }),
+	getPublishedPosts({ limit: 6, draft: isPreview, request: Astro.request }),
+	getCurrentUser({ request: Astro.request }),
+])
+
+
+const sourceMode = getPayloadDataSource()
+const navItems = header?.navItems ?? []
+const footerColumns = footer?.navColumns ?? []
+const adminEditURL = homePage ? `${payloadServerURL}/admin/collections/pages/${homePage.id}` : null
 ---
 
-<Layout>
-	<Welcome />
+<Layout
+	title={homePage?.meta?.title ?? homePage?.title ?? 'Astro + Payload'}
+	description={homePage?.meta?.description ?? 'Astro frontend connected to Payload CMS'}
+	adminUser={currentUser}
+	adminEditURL={adminEditURL}
+	preview={isPreview}
+	payloadServerURL={payloadServerURL}
+>
+	<section class="hero">
+		<p class="badge">Astro frontend is connected{isPreview ? ' (preview mode)' : ''}</p>
+		<h1>{homePage?.title ?? 'Payload content via Astro'}</h1>
+		<p>
+			Data source: <strong>{sourceMode}</strong> API. Set <code>PAYLOAD_LOCAL_API=false</code> to force REST
+			mode.
+		</p>
+	</section>
+
+	<section>
+		<h2>Header Nav (from Payload global)</h2>
+		<ul>
+			{navItems.length === 0 && <li>No nav items configured in Header global yet.</li>}
+			{navItems.map((item) => (
+				<li>{item.label ?? item.link?.label ?? 'Untitled navigation item'}</li>
+			))}
+		</ul>
+	</section>
+
+	<section>
+		<h2>Pages</h2>
+		<ul>
+			{pages.map((page) => (
+				<li>
+					<a href={toPreviewHref(page.breadcrumbs?.at(-1)?.url)}>{page.title}</a>
+				</li>
+			))}
+		</ul>
+	</section>
+
+	<section>
+		<h2>Posts</h2>
+		<p>
+			<a href={toPreviewHref('/posts')}>View full posts archive</a>
+		</p>
+		<ul>
+			{posts.map((post) => (
+				<li>
+					<a href={toPostHref(post.slug)}>{post.title}</a>
+				</li>
+			))}
+		</ul>
+	</section>
+
+	<section>
+		<h2>Footer Columns (from Payload global)</h2>
+		<ul>
+			{footerColumns.length === 0 && <li>No footer columns configured yet.</li>}
+			{footerColumns.map((column) => (
+				<li>
+					{column.title} ({column.links?.length ?? 0} links)
+				</li>
+			))}
+		</ul>
+	</section>
 </Layout>
+
+<style>
+	section {
+		margin-top: 2rem;
+		padding: 1.25rem;
+		border-radius: 1rem;
+		background: #ffffffcc;
+		border: 1px solid #dbe5f4;
+		box-shadow: 0 10px 30px rgba(16, 36, 61, 0.06);
+	}
+
+	.hero {
+		margin-top: 0;
+	}
+
+	.badge {
+		display: inline-block;
+		padding: 0.25rem 0.5rem;
+		font-size: 0.8rem;
+		border-radius: 999px;
+		background: #e6f0ff;
+		color: #1d4f91;
+	}
+
+	h1,
+	h2 {
+		margin: 0 0 0.75rem;
+	}
+
+	ul {
+		margin: 0;
+		padding-left: 1.1rem;
+	}
+
+	li + li {
+		margin-top: 0.45rem;
+	}
+
+	a {
+		color: #165bb5;
+		text-decoration: none;
+	}
+
+	a:hover {
+		text-decoration: underline;
+	}
+</style>

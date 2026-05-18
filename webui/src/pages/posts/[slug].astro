@@ -1,0 +1,186 @@
+---
+import type { Media, Post } from '@payload-types'
+
+import Layout from '../../layouts/Layout.astro'
+import {
+  getCurrentUser,
+  getPayloadBaseURL,
+  getPostBySlug,
+} from '../../lib/payload/client'
+
+export const prerender = false
+
+const slug = decodeURIComponent(Astro.params.slug || '')
+const isPreview = Astro.url.searchParams.get('preview') === 'true'
+const payloadServerURL = getPayloadBaseURL()
+
+const [post, currentUser] = await Promise.all([
+  getPostBySlug(slug, 1, { draft: isPreview, request: Astro.request }),
+  getCurrentUser({ request: Astro.request }),
+])
+
+if (!post) {
+  Astro.response.status = 404
+}
+
+const getMediaURL = (media: Post['heroImage']) => {
+  if (!media || typeof media === 'number') {
+    return null
+  }
+
+  const typedMedia = media as Media
+  const imagePath = typedMedia.sizes?.large?.url || typedMedia.url
+
+  if (!imagePath) {
+    return null
+  }
+
+  if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+    return imagePath
+  }
+
+  return `${payloadServerURL}${imagePath}`
+}
+
+const toPostHref = (postSlug: string) => {
+  const url = new URL(`/posts/${encodeURIComponent(postSlug)}`, 'http://localhost')
+
+  if (isPreview) {
+    url.searchParams.set('preview', 'true')
+  }
+
+  return `${url.pathname}${url.search}`
+}
+
+const categories = (post?.categories || [])
+  .map((category) => (typeof category === 'object' ? category.title : null))
+  .filter((title): title is string => Boolean(title))
+
+const relatedPosts = (post?.relatedPosts || []).filter((doc): doc is Post => typeof doc === 'object')
+const heroImageURL = post ? getMediaURL(post.heroImage) : null
+---
+
+<Layout
+  title={post?.meta?.title || post?.title || 'Post not found'}
+  description={post?.meta?.description || 'Payload post rendered by Astro'}
+  adminUser={currentUser}
+  adminEditURL={post ? `${payloadServerURL}/admin/collections/posts/${post.id}` : null}
+  preview={isPreview}
+  payloadServerURL={payloadServerURL}
+>
+  {
+    post ? (
+      <article class="post-detail">
+        {heroImageURL && <img class="hero" src={heroImageURL} alt={post.title} loading="lazy" />}
+
+        <header>
+          <p class="eyebrow">Post template migrated from Next frontend</p>
+          <h1>{post.title}</h1>
+          <p class="meta">
+            {post.publishedAt ? new Date(post.publishedAt).toLocaleDateString('sv-SE') : 'Unpublished draft'}
+          </p>
+          {categories.length > 0 && <p class="tags">{categories.join(' · ')}</p>}
+        </header>
+
+        <section class="summary">
+          <h2>Summary</h2>
+          <p>{post.meta?.description || 'No description is set for this post yet.'}</p>
+        </section>
+
+        <section class="content-note">
+          <h2>Content</h2>
+          <p>
+            This page is now using real Payload post data in Astro. Next step can be rendering Lexical rich text
+            blocks to fully match the Next template.
+          </p>
+        </section>
+
+        {relatedPosts.length > 0 && (
+          <section class="related">
+            <h2>Related posts</h2>
+            <ul>
+              {relatedPosts.map((related) => (
+                <li>
+                  <a href={toPostHref(related.slug)}>{related.title}</a>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+      </article>
+    ) : (
+      <article class="post-detail">
+        <h1>404</h1>
+        <p>No post found for slug {slug}.</p>
+      </article>
+    )
+  }
+</Layout>
+
+<style>
+  .post-detail {
+    margin-top: 1.5rem;
+    border: 1px solid #dbe5f4;
+    border-radius: 1rem;
+    background: #ffffffd9;
+    box-shadow: 0 10px 30px rgba(16, 36, 61, 0.06);
+    overflow: hidden;
+  }
+
+  .hero {
+    width: 100%;
+    max-height: 440px;
+    object-fit: cover;
+    display: block;
+    background: #eaf1fb;
+  }
+
+  header,
+  .summary,
+  .content-note,
+  .related {
+    padding: 1.1rem 1.25rem;
+  }
+
+  .summary,
+  .content-note,
+  .related {
+    border-top: 1px solid #e2eaf8;
+  }
+
+  .eyebrow {
+    margin: 0;
+    font-size: 0.85rem;
+    color: #2a5ea8;
+    font-weight: 600;
+  }
+
+  h1 {
+    margin: 0.4rem 0;
+  }
+
+  h2 {
+    margin: 0 0 0.4rem;
+    font-size: 1.1rem;
+  }
+
+  .meta,
+  .tags {
+    margin: 0.2rem 0;
+    color: #3f5875;
+  }
+
+  .related ul {
+    margin: 0;
+    padding-left: 1.1rem;
+  }
+
+  .related a {
+    color: #1d4f91;
+    text-decoration: none;
+  }
+
+  .related a:hover {
+    text-decoration: underline;
+  }
+</style>
