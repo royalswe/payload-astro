@@ -24,6 +24,10 @@ ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN pnpm --filter payload build
 
+# --- ADD THIS DEBUG STEP ---
+RUN echo "DEBUG: Listing build output directory:" && ls -R /app/payload/.next || echo "Path /app/payload/.next does not exist"
+# ---------------------------
+
 FROM base AS runner
 WORKDIR /app
 
