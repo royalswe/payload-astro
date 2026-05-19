@@ -19,9 +19,16 @@ ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN pnpm --filter payload build
 
-# Gather build artifacts into a clean, predictable location
-RUN mkdir -p /app/dist && \
-    find . -path "*/.next/standalone" -type d -exec cp -r {}/. /app/dist/ \;
+# --- DYNAMIC ASSET GATHERING ---
+# 1. Create a clean destination folder
+RUN mkdir -p /app/dist/payload/.next
+
+# 2. Find where Next.js put the standalone files and copy its contents to /app/dist
+RUN find . -path "*/.next/standalone" -type d -exec cp -r {}/. /app/dist/ \;
+
+# 3. Find where Next.js put the static files and copy them to /app/dist/payload/.next/static
+RUN find . -path "*/.next/static" -type d -exec cp -r {} /app/dist/payload/.next/static \;
+# -------------------------------
 
 FROM base AS runner
 WORKDIR /app
@@ -32,11 +39,8 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# 1. Copy the standalone tree
+# Copy the completely assembled, predictable dist folder
 COPY --from=builder --chown=nextjs:nodejs /app/dist ./
-
-# 2. Extract static assets from their actual monorepo-nested location
-COPY --from=builder --chown=nextjs:nodejs /app/payload/.next/static ./payload/.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/payload/public ./payload/public
 
 # Setup media directories
