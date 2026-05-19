@@ -19,10 +19,9 @@ ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN pnpm --filter payload build
 
-# Gather build artifacts into a predictable location
+# Gather build artifacts into a clean, predictable location
 RUN mkdir -p /app/dist && \
-    find . -path "*/.next/standalone" -type d -exec cp -r {}/. /app/dist/ \; && \
-    find . -path "*/.next/static" -type d -exec cp -r {} /app/dist/.next/static \;
+    find . -path "*/.next/standalone" -type d -exec cp -r {}/. /app/dist/ \;
 
 FROM base AS runner
 WORKDIR /app
@@ -33,12 +32,15 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Copy everything from our predictable /app/dist folder
+# 1. Copy the standalone tree
 COPY --from=builder --chown=nextjs:nodejs /app/dist ./
-COPY --from=builder --chown=nextjs:nodejs /app/payload/public ./public
+
+# 2. Extract static assets from their actual monorepo-nested location
+COPY --from=builder --chown=nextjs:nodejs /app/payload/.next/static ./payload/.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/payload/public ./payload/public
 
 # Setup media directories
-RUN mkdir -p public/media && chown -R nextjs:nodejs /app/public/media
+RUN mkdir -p payload/public/media && chown -R nextjs:nodejs /app/payload/public
 
 USER nextjs
 
@@ -46,5 +48,4 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# Standalone mode usually puts server.js at the root of the output
-CMD ["node", "server.js"]
+CMD ["node", "payload/server.js"]
