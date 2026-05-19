@@ -7,7 +7,7 @@ let localPayloadDisabled = false
 let payloadEnvLoaded = false
 
 const shouldUseLocalClient = (context: PayloadRequestContext) =>
-  shouldUseLocalAPI && !context.draft && !localPayloadDisabled
+  shouldUseLocalAPI && !localPayloadDisabled
 
 const ensurePayloadEnvLoaded = async (): Promise<void> => {
   if (payloadEnvLoaded) {
@@ -46,12 +46,11 @@ export const getLocalPayloadClient = async (
   context: PayloadRequestContext = {},
 ): Promise<Payload | null> => {
   if (!shouldUseLocalClient(context)) {
-    console.log('using REST api');
+    console.log('Using REST API :(');
     return null
   }
-
-  console.log('using LOCAL api');
-
+  console.log('Using local API :)');
+  
   if (!localPayloadPromise) {
     localPayloadPromise = (async () => {
       try {

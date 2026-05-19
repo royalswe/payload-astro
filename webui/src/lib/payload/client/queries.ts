@@ -308,6 +308,7 @@ export const getPageByPath = async (
         depth,
         limit: 20,
         pagination: false,
+        ...(context.draft ? { draft: true, overrideAccess: true } : {}),
         where: {
           'breadcrumbs.url': {
             equals: path,
