@@ -57,9 +57,9 @@ export const getLocalPayloadClient = async (
       try {
         await ensurePayloadEnvLoaded()
 
-        const [{ getPayload }, { default: config }] = await Promise.all([
+        const [{ getPayload }, {default: config}] = await Promise.all([
           import('payload'),
-          import('@payload-local-config'),
+          import('payload-app'),
         ])
 
         const payload = await getPayload({ config })
