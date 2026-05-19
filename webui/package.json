@@ -17,7 +17,6 @@
     "astro": "^6.3.1",
     "payload": "3.84.1",
     "payload-app": "workspace:*",
-    "sharp": "0.34.2",
     "typescript": "5.7.3"
   }
 }

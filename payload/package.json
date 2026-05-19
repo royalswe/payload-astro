@@ -1,16 +1,6 @@
 {
   "name": "payload-app",
   "version": "1.0.0",
-  "exports": {
-    ".": {
-      "types": "./src/payload.config.ts",
-      "default": "./src/payload.config.ts"
-    },
-    "./config": {
-      "types": "./src/payload.config.ts",
-      "default": "./src/payload.config.ts"
-    }
-  },
   "description": "Website template for Payload",
   "license": "MIT",
   "type": "module",

@@ -57,21 +57,10 @@ export const getLocalPayloadClient = async (
       try {
         await ensurePayloadEnvLoaded()
 
-        const [{ getPayload }, configModule] = await Promise.all([
+        const [{ getPayload }, {default: config}] = await Promise.all([
           import('payload'),
           import('payload-app'),
         ])
-
-        const config =
-          'config' in configModule && configModule.config
-            ? configModule.config
-            : 'default' in configModule
-              ? configModule.default
-              : null
-
-        if (!config) {
-          throw new Error('[webui] payload-app did not export a valid config object')
-        }
 
         const payload = await getPayload({ config })
         setActiveDataSource('local')

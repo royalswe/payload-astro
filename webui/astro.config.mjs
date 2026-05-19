@@ -7,8 +7,6 @@ import { loadEnv } from 'payload/node'
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 
-// Prefer loading the existing Payload env file so Astro can use local API mode.
-//loadEnv(path.resolve(currentDir, '../payload/.env'))
 loadEnv()
 
 export default defineConfig({
@@ -17,14 +15,6 @@ export default defineConfig({
     mode: 'standalone',
   }),
   vite: {
-    ssr: {
-      external: [
-        'payload',
-        'sharp',
-        '@img/sharp-linuxmusl-x64',
-        '@img/sharp-wasm32',
-      ],
-    },
     resolve: {
       alias: [
         {

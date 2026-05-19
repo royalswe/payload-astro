@@ -54,6 +54,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      payload:
+        condition: service_started
     restart: unless-stopped
 
 volumes:
