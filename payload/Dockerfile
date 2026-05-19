@@ -12,14 +12,12 @@ FROM base AS deps
 # Monorepo install: lockfile lives at repo root.
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY payload/package.json ./payload/package.json
-COPY webui/package.json ./webui/package.json
 RUN pnpm install --frozen-lockfile
 
 FROM base AS builder
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/payload ./payload
-COPY --from=deps /app/webui ./webui
 COPY . .
 
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -35,21 +33,28 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-COPY --from=builder /app/payload/public ./public
+# In a pnpm monorepo Next.js auto-detects the workspace root as outputFileTracingRoot,
+# so the standalone output nests everything under the package sub-path (payload/).
+# standalone/payload/server.js  ← entry point
+# standalone/payload/.next/     ← server bundles (already inside standalone)
+# standalone/node_modules/      ← hoisted monorepo deps (already inside standalone)
 
-RUN mkdir .next
-RUN chown nextjs:nodejs .next
-
-# Next standalone output generated from payload app build.
+# Copy the entire standalone tree (brings node_modules + payload/ subtree).
 COPY --from=builder --chown=nextjs:nodejs /app/payload/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/payload/.next/static ./.next/static
 
-RUN mkdir -p public/media && chown -R nextjs:nodejs /app/public
-RUN mkdir -p media && chown -R nextjs:nodejs /app/media
+# Static client assets must live next to server.js under the same sub-path.
+COPY --from=builder --chown=nextjs:nodejs /app/payload/.next/static ./payload/.next/static
+
+# Public directory must also sit next to server.js.
+COPY --from=builder --chown=nextjs:nodejs /app/payload/public ./payload/public
+
+RUN mkdir -p payload/.next && chown nextjs:nodejs payload/.next
+RUN mkdir -p payload/public/media && chown -R nextjs:nodejs /app/payload/public
+RUN mkdir -p payload/media && chown -R nextjs:nodejs /app/payload/media
 
 USER nextjs
 
 EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
-CMD ["node", "server.js"]
+CMD ["node", "payload/server.js"]
