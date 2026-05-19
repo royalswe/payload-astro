@@ -191,9 +191,6 @@ importers:
       payload-app:
         specifier: workspace:*
         version: link:../payload
-      sharp:
-        specifier: 0.34.2
-        version: 0.34.2
       typescript:
         specifier: 5.7.3
         version: 5.7.3
