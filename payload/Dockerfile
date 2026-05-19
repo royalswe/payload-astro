@@ -8,25 +8,21 @@ RUN corepack enable pnpm && corepack prepare pnpm@10.28.1 --activate
 WORKDIR /app
 
 FROM base AS deps
-
-# Monorepo install: lockfile lives at repo root.
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY payload/package.json ./payload/package.json
 RUN pnpm install --frozen-lockfile
 
 FROM base AS builder
-
 COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/payload ./payload
 COPY . .
-
 ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN pnpm --filter payload build
 
-# --- ADD THIS DEBUG STEP ---
-RUN echo "DEBUG: Listing build output directory:" && ls -R /app/payload/.next || echo "Path /app/payload/.next does not exist"
-# ---------------------------
+# Gather build artifacts into a predictable location
+RUN mkdir -p /app/dist && \
+    find . -path "*/.next/standalone" -type d -exec cp -r {}/. /app/dist/ \; && \
+    find . -path "*/.next/static" -type d -exec cp -r {} /app/dist/.next/static \;
 
 FROM base AS runner
 WORKDIR /app
@@ -37,28 +33,18 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# In a pnpm monorepo Next.js auto-detects the workspace root as outputFileTracingRoot,
-# so the standalone output nests everything under the package sub-path (payload/).
-# standalone/payload/server.js  ← entry point
-# standalone/payload/.next/     ← server bundles (already inside standalone)
-# standalone/node_modules/      ← hoisted monorepo deps (already inside standalone)
+# Copy everything from our predictable /app/dist folder
+COPY --from=builder --chown=nextjs:nodejs /app/dist ./
+COPY --from=builder --chown=nextjs:nodejs /app/payload/public ./public
 
-# Copy the entire standalone tree (brings node_modules + payload/ subtree).
-COPY --from=builder --chown=nextjs:nodejs /app/payload/.next/standalone ./
-
-# Static client assets must live next to server.js under the same sub-path.
-COPY --from=builder --chown=nextjs:nodejs /app/payload/.next/static ./payload/.next/static
-
-# Public directory must also sit next to server.js.
-COPY --from=builder --chown=nextjs:nodejs /app/payload/public ./payload/public
-
-RUN mkdir -p payload/.next && chown nextjs:nodejs payload/.next
-RUN mkdir -p payload/public/media && chown -R nextjs:nodejs /app/payload/public
-RUN mkdir -p payload/media && chown -R nextjs:nodejs /app/payload/media
+# Setup media directories
+RUN mkdir -p public/media && chown -R nextjs:nodejs /app/public/media
 
 USER nextjs
 
 EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
-CMD ["node", "payload/server.js"]
+
+# Standalone mode usually puts server.js at the root of the output
+CMD ["node", "server.js"]
