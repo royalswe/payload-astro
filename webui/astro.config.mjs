@@ -15,6 +15,14 @@ export default defineConfig({
     mode: 'standalone',
   }),
   vite: {
+    ssr: {
+      external: [
+        'payload',
+        'sharp',
+        '@img/sharp-linuxmusl-x64',
+        '@img/sharp-wasm32',
+      ],
+    },
     resolve: {
       alias: [
         {
