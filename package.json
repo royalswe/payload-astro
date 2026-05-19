@@ -3,15 +3,15 @@
   "version": "1.0.0",
   "pnpm": {
     "onlyBuiltDependencies": [
-      "sharp",
       "esbuild",
+      "sharp",
       "unrs-resolver"
     ]
   },
   "scripts": {
-    "dev": "pnpm -r --parallel --filter payload --filter webui dev",
+    "dev": "pnpm -r --parallel --filter payload-app --filter webui dev",
     "dev:payload": "cd payload && pnpm dev:webpack",
     "dev:webui": "cd webui && pnpm dev",
-    "generate:types": "pnpm --filter payload run generate:types"
+    "generate:types": "pnpm --filter payload-app run generate:types"
   }
 }

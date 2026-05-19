@@ -3,6 +3,7 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
+      "payload-app": ["../payload/src/payload.config.ts"],
       "@payload-types": ["../payload/src/payload-types.ts"],
       "@payload-local-config": ["../payload/src/payload.config.ts"],
       "@/*": ["./src/*", "../payload/src/*"]

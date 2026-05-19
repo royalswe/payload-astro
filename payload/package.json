@@ -1,13 +1,23 @@
 {
-  "name": "payload",
+  "name": "payload-app",
   "version": "1.0.0",
+  "exports": {
+    ".": {
+      "types": "./src/payload.config.ts",
+      "default": "./src/payload.config.ts"
+    },
+    "./config": {
+      "types": "./src/payload.config.ts",
+      "default": "./src/payload.config.ts"
+    }
+  },
   "description": "Website template for Payload",
   "license": "MIT",
   "type": "module",
   "scripts": {
     "build": "cross-env NODE_OPTIONS=--no-deprecation next build --experimental-build-mode compile",
     "postbuild": "next-sitemap --config next-sitemap.config.cjs",
-    "dev": "cross-env NODE_OPTIONS=--no-deprecation next dev",
+    "dev": "cross-env NODE_OPTIONS=--no-deprecation next dev --webpack",
     "dev:webpack": "cross-env NODE_OPTIONS=--no-deprecation next dev --webpack",
     "dev:prod": "cross-env NODE_OPTIONS=--no-deprecation rm -rf .next && pnpm build && pnpm start",
     "generate:importmap": "cross-env NODE_OPTIONS=--no-deprecation payload generate:importmap",

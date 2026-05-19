@@ -1,5 +1,7 @@
 ---
 import type { User } from '@payload-types'
+import { getPayload } from 'payload'
+import { config } from 'payload-app'
 
 const {
   title,
@@ -16,6 +18,12 @@ const {
   preview?: boolean
   payloadServerURL?: string
 }
+
+// Start - Only testing monorepo and local-api
+const payload = await getPayload({ config })
+const posts = await payload.find({ collection: 'posts', sort: 'createdAt' })
+console.log('posts', posts);
+// End - Only testing monorepo and local-api
 
 const exitPreviewURL = new URL(Astro.url.pathname, Astro.url)
 

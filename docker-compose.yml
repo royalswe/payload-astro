@@ -47,7 +47,7 @@ services:
       # webui uses Payload local API (direct DB) by default; set to false to switch to REST
       PAYLOAD_LOCAL_API: 'true'
       # Base URL of the payload service, used for REST calls and browser-side links
-      PAYLOAD_PUBLIC_URL: http://localhost:3000
+      PAYLOAD_PUBLIC_URL: http://payload:3000
       NODE_ENV: production
       HOST: 0.0.0.0
       PORT: 4321
