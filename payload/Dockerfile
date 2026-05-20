@@ -22,7 +22,7 @@ COPY . .
 
 ENV NEXT_TELEMETRY_DISABLED=1
 
-RUN pnpm --filter payload build
+RUN pnpm --filter payload-app build
 
 FROM base AS runner
 WORKDIR /app
